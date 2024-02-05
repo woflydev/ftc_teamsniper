@@ -23,37 +23,55 @@
 </template>
 
 <script>
+import { DateTime } from 'luxon';
+
 export default {
   data() {
     return {
       currentTime: '',
       currentTimeUpdateCall: null,
-      regionTimezones: {
-        au2: 'Australia/Sydney',
-        au4: 'Australia/Brisbane',
-        nz0: 'Pacific/Auckland',
-      },
     };
   },
   methods: {
-    initTime() {
-      const timezone = this.regionTimezones['au2']; // Assuming default region is 'au2'
-      if (this.currentTimeUpdateCall) {
-        clearInterval(this.currentTimeUpdateCall);
+    async initTime() {
+      try {
+        const { coords } = await this.getCurrentPosition();
+        const timezone = await this.getTimezone(coords.latitude, coords.longitude);
+        
+        if (this.currentTimeUpdateCall) {
+          clearInterval(this.currentTimeUpdateCall);
+        }
+        
+        this.currentTimeUpdateCall = setInterval(() => {
+          const now = DateTime.now().setZone(timezone);
+          this.currentTime = now.toFormat('HH:mm:ss');
+        }, 1000);
+      } catch (error) {
+        console.error('Error getting user location:', error);
       }
-      this.currentTimeUpdateCall = setInterval(() => {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat([], {
-          timeZone: timezone,
-          hour: 'numeric',
-          minute: 'numeric',
-          second: 'numeric',
-        });
-        this.currentTime = formatter.format(now);
-      }, 1000);
-    }
+    },
+    getCurrentPosition() {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+    },
+    getTimezone(latitude, longitude) {
+      return new Promise((resolve, reject) => {
+        const timezoneUrl = `https://api.timezonedb.com/v2.1/get-time-zone?key=ARUW81SI55Z9&format=json&by=position&lat=${latitude}&lng=${longitude}`;
+        
+        fetch(timezoneUrl)
+          .then(response => response.json())
+          .then(data => {
+            resolve(data.zoneName || 'UTC'); // Default to UTC if no timezone data is available
+          })
+          .catch(error => {
+            console.error('Error getting timezone:', error);
+            reject(error);
+          });
+      });
+    },
   },
-  created() {
+  mounted() {
     this.initTime();
   },
 };
