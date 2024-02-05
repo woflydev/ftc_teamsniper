@@ -5,7 +5,7 @@
         <input
           type="text"
           class="form-control"
-          placeholder="Start typing..."
+          placeholder="Search for an FTC Season (e.g. 2023)"
           v-model="searchQuery"
           @keydown.enter="searchTeams"
           ref="searchInput"
@@ -14,9 +14,9 @@
       </div>
     </div>
     <div class="scrollable-box">
-      <ul v-if="teamResults.length" class="list-group">
+      <ul class="list-group">
         <li
-          v-for="(team, index) in teamResults"
+          v-for="(team, index) in allTeams"
           :key="index"
           class="list-group-item"
           @click="selectTeam(team)"
@@ -24,20 +24,23 @@
         >
           <div class="result">
             <div class="result-left">
-              {{ team.teamNumber }} - {{ team.teamName }}
+              {{ team.teamNumber }} - {{ team.nameShort }}
             </div>
             <div class="result-right">
               <div class="result-top">
-                {{ team.location }}
+                {{ team.city }}, {{ team.stateProv }}, {{ team.country }}
               </div>
               <div class="result-bottom">
-                {{ team.rookieYear }}
+                Rookie Year: {{ team.rookieYear }}
               </div>
             </div>
           </div>
         </li>
+        <li v-if="loading" class="list-group-item">
+          <div>Hold on, combing through records...</div>
+        </li>
       </ul>
-      <p v-else>No results found.</p>
+      <p v-if="!allTeams.length && !loading">No results found.</p>
     </div>
   </div>
 </template>
@@ -46,35 +49,45 @@
 import axios from 'axios';
 
 export default {
+  props: {
+    host: String,
+  },
   data() {
     return {
       searchQuery: '',
-      teamResults: [],
+      allTeams: [],
       activeResultIndex: -1,
+      loading: false,
+      totalPages: 0,
     };
   },
   methods: {
     async searchTeams() {
-      const apiUrl = `${this.host}/v2.0/2023/teams?page=1`;
-      await this.fetchData(apiUrl, 'team');
-    },
-    async fetchData(apiUrl, dataType) {
-      try {
-        const response = await axios.get(apiUrl);
-        const data = response.data; // Adjust this based on the actual structure of the API response
-        console.info(`INFO - Received ${dataType} Data:`, data);
-        
-        if (dataType === 'team') {
-          this.teamResults = data.teams; // Adjust this based on the actual structure of the API response
-        }
-      } catch (error) {
-        console.error('USR_ERR:', error);
+      this.loading = true;
+      this.allTeams = []; // Clear existing teams
+
+      // Make a query to find pageTotal
+      const pageTotalUrl = `${this.host}/api/search?year=${this.searchQuery}&page=1`;
+      const pageTotalResponse = await axios.get(pageTotalUrl);
+      this.totalPages = pageTotalResponse.data.pageTotal;
+
+      // Fetch teams backward from totalPages to 1
+      for (let page = this.totalPages; page >= 1; page--) {
+        const pageUrl = `${this.host}/api/search?year=${this.searchQuery}&page=${page}`;
+        const pageResponse = await axios.get(pageUrl);
+        const sortedPageData = pageResponse.data.teams.sort((a, b) => b.teamNumber - a.teamNumber);
+        this.allTeams = this.allTeams.concat(sortedPageData);
+        this.allTeams = this.allTeams.filter(team => /^\d{1,5}$/.test(team.teamNumber.toString()) && team.rookieYear >= 2000);
+
+        await this.$nextTick(); // Update the UI
       }
+
+      this.loading = false;
     },
+
     async selectTeam(team) {
       try {
         console.info('INFO - Selected Team:', team);
-        // Add logic to handle the selected team, if needed
       } catch (error) {
         console.error('USR_ERR:', error);
       }

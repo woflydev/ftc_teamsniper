@@ -53,7 +53,7 @@
         >
         <div class="accordion-body">
             Yep! The code that runs this website is available for anyone to see and use.
-            The code is available on <a href="https://github.com/woflydev/ftc-teamsniper" rel="noreferrer noopener" target="_blank">GitHub</a>.
+            The code is available on <a href="https://github.com/woflydev/ftc_teamsniper" rel="noreferrer noopener" target="_blank">GitHub</a>.
             TeamSniper is licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.en.html" rel="noreferrer noopener" target="_blank">GNU GPLv3</a> license.
         </div>
         </div>

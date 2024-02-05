@@ -10,22 +10,20 @@ app.use((req, res, next) => {
 
 app.get('/api/search', async (req, res) => {
   try {
-    const { year } = req.query;
-    const apiUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams`;
+    const { year, page } = req.query;
+    const apiUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams?page=${page}`;
     const headers = {
       Authorization: `Basic ${Buffer.from(`woflydev:6C7100E7-CFF1-47FC-ABD1-0B687D7665E0`).toString('base64')}`,
     };
 
+    let allTeams = [];
     const response = await axios.get(apiUrl, { headers });
+
+    allTeams = allTeams.concat(response.data.teams);
+
     const pageTotal = response.data.pageTotal;
 
-    if (pageTotal > 1) {
-      const lastPageUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams?page=${pageTotal}`;
-      const lastPageResponse = await axios.get(lastPageUrl, { headers });
-      res.json(lastPageResponse.data);
-    } else {
-      res.json(response.data);
-    }
+    res.json({ teams: allTeams, teamCountTotal: allTeams.length, pageTotal });
   } catch (error) {
     console.error('Error proxying API request:', error);
     res.status(500).json({ error: 'Internal server error' });

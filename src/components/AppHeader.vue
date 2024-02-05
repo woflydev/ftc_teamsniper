@@ -24,10 +24,6 @@
 
 <script>
 export default {
-  props: {
-    selectedRegionLabel: String,
-    regions: Array,
-  },
   data() {
     return {
       currentTime: '',
@@ -41,9 +37,7 @@ export default {
   },
   methods: {
     initTime() {
-      const timezone = this.regionTimezones[this.regions.find(
-        (region) => region.label === this.selectedRegionLabel
-      ).key];
+      const timezone = this.regionTimezones['au2']; // Assuming default region is 'au2'
       if (this.currentTimeUpdateCall) {
         clearInterval(this.currentTimeUpdateCall);
       }
@@ -61,11 +55,6 @@ export default {
   },
   created() {
     this.initTime();
-  },
-  watch: {
-    selectedRegionLabel() {
-      this.initTime();
-    },
   },
 };
 </script>
