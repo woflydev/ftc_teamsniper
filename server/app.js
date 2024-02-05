@@ -10,31 +10,29 @@ app.use((req, res, next) => {
 
 app.get('/api/search', async (req, res) => {
   try {
-    const { limit, q, region } = req.query;
-    const apiUrl = `https://anytrip.com.au/api/v3/region/${region}/search?limit=${limit}&q=${q}`;
-    const response = await axios.get(apiUrl);
-    res.json(response.data);
+    const { year } = req.query;
+    const apiUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams`;
+    const headers = {
+      Authorization: `Basic ${Buffer.from(`woflydev:6C7100E7-CFF1-47FC-ABD1-0B687D7665E0`).toString('base64')}`,
+    };
+
+    const response = await axios.get(apiUrl, { headers });
+    const pageTotal = response.data.pageTotal;
+
+    if (pageTotal > 1) {
+      const lastPageUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams?page=${pageTotal}`;
+      const lastPageResponse = await axios.get(lastPageUrl, { headers });
+      res.json(lastPageResponse.data);
+    } else {
+      res.json(response.data);
+    }
   } catch (error) {
     console.error('Error proxying API request:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.get('/api/departures', async (req, res) => {
-  try {
-    const { region, query } = req.query; // Assuming you'll pass the region code and station ID as query parameters
-    const random = Math.floor(Math.random() * 1000); // prevent api from caching
-    const apiUrl = `https://anytrip.com.au/api/v3/region/${region}/departures/${query}?limit=25&offset=0&useRedis=true&cache=${random}`;
-    const response = await axios.get(apiUrl);
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching departures:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-app.get('/hello', (_, res) => res.send('Hello from the ZeroTrip API!'));
+app.get('/hello', (_, res) => res.send('Hello from the FTC TeamSniper API!'));
 app.get('/healthy', (_, res) => res.status(200).send('OK'));
 
-module.exports = app; // Export the 'app' object
+module.exports = app;
