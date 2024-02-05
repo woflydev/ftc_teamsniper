@@ -17,7 +17,12 @@ import AppHeader from './components/AppHeader.vue';
 import Search from './components/Search.vue';
 import Explainer from './components/Explainer.vue';
 
-const host = `${window.location.protocol}//${window.location.host}`;
+console.info("Current environment is", import.meta.env.MODE);
+
+const isProduction = import.meta.env.MODE === 'production';
+const host = isProduction
+  ? 'https://ftc-teamsniper.vercel.app'
+  : `${window.location.protocol}//${window.location.host}`;
 
 </script>
 
