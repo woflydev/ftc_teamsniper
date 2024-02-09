@@ -88,6 +88,7 @@ export default {
     async selectTeam(team) {
       try {
         console.info('INFO - Selected Team:', team);
+        window.open(`https://www.theorangealliance.org/teams/${team.teamNumber}`, '_blank')
       } catch (error) {
         console.error('USR_ERR:', error);
       }
