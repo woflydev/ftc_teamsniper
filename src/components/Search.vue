@@ -5,7 +5,7 @@
         <input
           type="text"
           class="form-control"
-          placeholder="Search for an FTC Season (e.g. 2023)"
+          placeholder="Search for season (e.g. 2023)"
           v-model="searchQuery"
           @keydown.enter="searchTeams"
           ref="searchInput"
@@ -39,8 +39,11 @@
         <li v-if="loading" class="list-group-item">
           <div>Hold on, combing through records...</div>
         </li>
+        <li v-if="noResults" class="list-group-item">
+          <div>No such season!</div>
+        </li>
       </ul>
-      <p v-if="!allTeams.length && !loading">No results found.</p>
+      <p v-if="!allTeams.length && !loading && !noResults">No results found.</p>
     </div>
   </div>
 </template>
@@ -58,20 +61,28 @@ export default {
       allTeams: [],
       activeResultIndex: -1,
       loading: false,
+      noResults: false,
       totalPages: 0,
     };
   },
   methods: {
     async searchTeams() {
       this.loading = true;
-      this.allTeams = []; // Clear existing teams
+      this.noResults = false;
+      this.allTeams = []; // clear
 
-      // Make a query to find pageTotal
       const pageTotalUrl = `${this.host}/api/search?year=${this.searchQuery}&page=1`;
-      const pageTotalResponse = await axios.get(pageTotalUrl);
+      let pageTotalResponse;
+      try {
+        pageTotalResponse = await axios.get(pageTotalUrl);
+      } catch {
+        this.loading = false;
+        this.noResults = true;
+        return;
+      }
+      
       this.totalPages = pageTotalResponse.data.pageTotal;
 
-      // Fetch teams backward from totalPages to 1
       for (let page = this.totalPages; page >= 1; page--) {
         const pageUrl = `${this.host}/api/search?year=${this.searchQuery}&page=${page}`;
         const pageResponse = await axios.get(pageUrl);
@@ -79,7 +90,7 @@ export default {
         this.allTeams = this.allTeams.concat(sortedPageData);
         this.allTeams = this.allTeams.filter(team => /^\d{1,5}$/.test(team.teamNumber.toString()) && team.rookieYear >= 2000);
 
-        await this.$nextTick(); // Update the UI
+        await this.$nextTick();
       }
 
       this.loading = false;
