@@ -1,0 +1,1 @@
+use `ps -a` -> find relevant process id, then `kill`.
