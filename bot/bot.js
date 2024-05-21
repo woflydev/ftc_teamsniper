@@ -187,7 +187,23 @@ client.on('interactionCreate', async interaction => {
     } else if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'help') {
-        await interaction.reply('This bot sends notifications when a new team is created.');
+        await interaction.reply(`
+        This bot sends notifications when a new team is created.\n
+        Commands:\n
+        /setdelay [seconds] - Set the delay interval in seconds\n
+        /setchannel [channel ID] - Set the channel ID for notifications\n
+        /setrole [role ID] - Set the role ID for notifications\n
+        /ping - Ping the bot\n
+        /help - This message.
+
+        ========================================
+
+        Current settings:\n
+        Delay: ${delay / 1000} seconds\n
+        Channel ID: ${channelId}\n
+        Role ID: ${roleId}
+
+        `);
     }
 });
 
