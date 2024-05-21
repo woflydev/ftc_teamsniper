@@ -2,9 +2,16 @@ import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import fetch from 'node-fetch';
 import fs from 'fs';
 
-// Replace with your bot token and client ID
-const TOKEN = 'MTI0MjQ0ODg4MjEyMjg4NzE4OQ.G4FXsy.fE367uLz6ff60x9EikgVhzDINtED9ktIMdHTus';
-const CLIENT_ID = '1242448882122887189';
+// Load the secret.json file to get the bot token and client ID
+let secrets;
+try {
+    secrets = JSON.parse(fs.readFileSync('secret.json', 'utf8'));
+} catch (error) {
+    console.error('Error reading secret.json:', error);
+    process.exit(1);
+}
+
+const { TOKEN, CLIENT_ID } = secrets;
 
 const client = new Client({
     intents: [
@@ -17,6 +24,7 @@ const client = new Client({
 // Initial delay in milliseconds (5 minutes)
 let delay = 300000;
 let channelId = null;
+let roleId = null;
 
 // Load the configuration from a file if it exists
 try {
@@ -27,6 +35,9 @@ try {
     if (config.channelId) {
         channelId = config.channelId;
     }
+    if (config.roleId) {
+        roleId = config.roleId;
+    }
 } catch (error) {
     console.error('No configuration file found or invalid JSON. Using default settings.');
 }
@@ -35,21 +46,25 @@ let latestTeamNumber = null;
 
 const checkForNewTeam = async () => {
     try {
-        const response = await fetch('https://sniperapi.woflydev.com/latest?year=2023');
+        const response = await fetch('https://sniperapi.woflydev.com/api/latest?year=2023');
         const data = await response.json();
+        const channel = client.channels.cache.get(channelId);
 
         if (data.latestTeamNumber && data.latestTeamNumber !== latestTeamNumber) {
             latestTeamNumber = data.latestTeamNumber;
             if (channelId) {
-                const channel = client.channels.cache.get(channelId);
                 if (channel) {
-                    channel.send(`A new team has been made: ${latestTeamNumber}`);
+                    const roleMention = roleId ? `<@&${roleId}>` : '';
+                    channel.send(`${roleMention}\nA new team has been made! ${latestTeamNumber}`);
                 } else {
                     console.error('Channel not found!');
                 }
             } else {
                 console.error('Channel ID not set!');
             }
+        } else {
+            console.log('\nNo new team found.');
+            console.log("Most recent team number: ", latestTeamNumber)
         }
     } catch (error) {
         console.error('Error fetching latest team:', error);
@@ -70,14 +85,14 @@ const commands = [
             {
                 name: 'seconds',
                 type: 4, // INTEGER
-                description: 'Number of seconds',
+                description: 'Number of seconds before the bot checks the SniperAPI again.',
                 required: true,
             },
         ],
     },
     {
         name: 'setchannel',
-        description: 'Set the channel ID for notifications',
+        description: 'Set the channel ID for notifications.',
         options: [
             {
                 name: 'channelid',
@@ -87,6 +102,26 @@ const commands = [
             },
         ],
     },
+    {
+        name: 'setrole',
+        description: 'Set the role ID for notifications.',
+        options: [
+            {
+                name: 'roleid',
+                type: 3, // STRING
+                description: 'Role ID',
+                required: true,
+            },
+        ],
+    },
+    {
+        name: 'ping',
+        description: 'Ping the bot.',
+    },
+    {
+        name: 'help',
+        description: 'What is this bot?',
+    }
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);
@@ -109,7 +144,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
-    const { commandName, options } = interaction;
+    const { commandName, options, guild } = interaction;
 
     if (commandName === 'setdelay') {
         const newDelay = options.getInteger('seconds');
@@ -119,7 +154,7 @@ client.on('interactionCreate', async interaction => {
             setInterval(checkForNewTeam, delay);
 
             // Save the new delay to a configuration file
-            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId }), 'utf8');
+            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
 
             await interaction.reply(`Delay set to ${newDelay} seconds.`);
         } else {
@@ -132,12 +167,27 @@ client.on('interactionCreate', async interaction => {
             channelId = newChannelId;
 
             // Save the new channel ID to a configuration file
-            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId }), 'utf8');
+            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
 
             await interaction.reply(`Channel set to ${channel.name}`);
         } else {
             await interaction.reply('Invalid channel ID.');
         }
+    } else if (commandName === 'setrole') {
+        const newRoleId = options.getString('roleid');
+        const role = guild.roles.cache.get(newRoleId);
+        if (role) {
+            roleId = newRoleId;
+            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
+
+            await interaction.reply(`Role set to ${role.name}`);
+        } else {
+            await interaction.reply('Invalid role ID.');
+        }
+    } else if (commandName === 'ping') {
+        await interaction.reply('Pong!');
+    } else if (commandName === 'help') {
+        await interaction.reply('This bot sends notifications when a new team is created.');
     }
 });
 
