@@ -187,9 +187,10 @@ client.on('interactionCreate', async interaction => {
     } else if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'help') {
-        await interaction.reply(`
-        This bot sends notifications when a new team is created.
-        Commands:
+        await interaction.reply(
+        `This bot sends notifications when a new team is created.
+
+        ## Commands:
         /setdelay [seconds] - Set the delay interval in seconds
         /setchannel [channel ID] - Set the channel ID for notifications
         /setrole [role ID] - Set the role ID for notifications
@@ -198,12 +199,10 @@ client.on('interactionCreate', async interaction => {
 
         ========================================
 
-        Current settings:
+        ## Current settings:
         Delay: ${delay / 1000} seconds
         Channel ID: ${channelId}
-        Role ID: ${roleId}
-
-        `);
+        Role ID: ${roleId}`);
     }
 });
 
