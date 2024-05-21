@@ -1,33 +1,105 @@
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+
 const app = express();
+const dataFilePath = path.join(__dirname, 'latest.json');
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-});
+// Initialize the latest data file if it doesn't exist
+const initializeLatestDataFile = () => {
+  if (!fs.existsSync(dataFilePath)) {
+    const defaultData = { latestTeamNumber: 0, pageNumber: 1 };
+    fs.writeFileSync(dataFilePath, JSON.stringify(defaultData));
+  }
+};
 
-app.get('/api/search', async (req, res) => {
+// Read the latest data (team number and page number) from the file
+const readLatestData = () => {
   try {
-    const { year, page } = req.query;
-    const apiUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams?page=${page}`;
+    if (fs.existsSync(dataFilePath)) {
+      const data = fs.readFileSync(dataFilePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading latest data:', error);
+  }
+  return { latestTeamNumber: 0, pageNumber: 1 };
+};
+
+// Write the latest data (team number and page number) to the file
+const writeLatestData = (latestTeamNumber, pageNumber) => {
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify({ latestTeamNumber, pageNumber }));
+  } catch (error) {
+    console.error('Error writing latest data:', error);
+  }
+};
+
+const isValidTeamNumber = (number) => /^\d{1,5}$/.test(number);
+// Check if a team number starts with 9, 99, or 999
+const startsWithNines = (number) => /^9{1,3}/.test(number.toString());
+
+app.get('/api/latest', async (req, res) => {
+  try {
+    const { year } = req.query;
     const headers = {
-      Authorization: `Basic ${Buffer.from(`woflydev:6C7100E7-CFF1-47FC-ABD1-0B687D7665E0`).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from('woflydev:6C7100E7-CFF1-47FC-ABD1-0B687D7665E0').toString('base64')}`,
     };
 
-    let allTeams = [];
-    const response = await axios.get(apiUrl, { headers });
+    console.info("Initializing data file!")
+    initializeLatestDataFile();
 
-    allTeams = allTeams.concat(response.data.teams);
+    console.info("Reading data file...")
+    const latestData = readLatestData();
+    let { latestTeamNumber, pageNumber } = latestData;
+    console.info("Data loaded!")
 
-    const pageTotal = response.data.pageTotal;
+    let page = pageNumber;
+    let stopIteration = false;
 
-    res.json({ teams: allTeams, teamCountTotal: allTeams.length, pageTotal });
+    console.info("Starting from page", page)
+    while (!stopIteration) {
+      const apiUrl = `https://ftc-api.firstinspires.org/v2.0/${year}/teams?page=${page}`;
+      console.log("Fetching data from page", page)
+      try {
+        const response = await axios.get(apiUrl, { headers });
+        const data = response.data;
+
+        if (data.teamCountTotal === 0 || !data.teams || data.teams.length === 0) {
+          stopIteration = true;
+          break;
+        }
+
+        const validTeams = data.teams.filter(team => isValidTeamNumber(team.teamNumber) && !startsWithNines(team.teamNumber));
+        if (validTeams.length > 0) {
+          latestTeamNumber = Math.max(latestTeamNumber, ...validTeams.map(team => team.teamNumber));
+        }
+
+        if (data.pageTotal <= page) {
+          stopIteration = true;
+          console.log("Highest valid team found!")
+          break;
+        }
+
+        page++;
+      } catch (error) {
+        console.error(`Error fetching data from page ${page}:`, error);
+        stopIteration = true;
+      }
+    }
+
+    console.info("\nFinishing up...")
+    console.info("Writing data to file...")
+    writeLatestData(latestTeamNumber, page - 1);
+
+    res.json({ latestTeamNumber });
   } catch (error) {
-    console.error('Error proxying API request:', error);
+    console.error('Error processing request:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+
+  console.info("\n=============Run complete!=============\n")
 });
 
 app.get('/hello', (_, res) => res.send('Hello from the FTC TeamSniper API!'));
