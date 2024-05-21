@@ -198,9 +198,9 @@ client.on('interactionCreate', async interaction => {
 
         ========================================
 
-        Current settings:\n
-        Delay: ${delay / 1000} seconds\n
-        Channel ID: ${channelId}\n
+        Current settings:
+        Delay: ${delay / 1000} seconds
+        Channel ID: ${channelId}
         Role ID: ${roleId}
 
         `);
