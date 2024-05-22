@@ -154,12 +154,9 @@ client.on('interactionCreate', async interaction => {
             delay = newDelay * 1000;
             clearInterval(intervalId);
             intervalId = setInterval(checkForNewTeam, delay);
-            console.log(`New delay set is ${delay/1000}`)
-
-            // Save the new delay to a configuration file
-            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
-
-            await interaction.reply(`Delay set to ${newDelay} seconds.`);
+            console.log(`DEBUG: New delay set is ${delay/1000}`);
+            writeConfig();
+            await interaction.reply(`# Delay set to ${newDelay} seconds.`);
         } else {
             await interaction.reply('Please provide a valid number greater than 0.');
         }
@@ -168,9 +165,7 @@ client.on('interactionCreate', async interaction => {
         const channel = client.channels.cache.get(newChannelId);
         if (channel) {
             channelId = newChannelId;
-
-            // Save the new channel ID to a configuration file
-            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
+            writeConfig();
 
             await interaction.reply(`Channel set to ${channel.name}`);
         } else {
@@ -181,8 +176,7 @@ client.on('interactionCreate', async interaction => {
         const role = guild.roles.cache.get(newRoleId);
         if (role) {
             roleId = newRoleId;
-            fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
-
+            writeConfig();
             await interaction.reply(`Role set to ${role.name}`);
         } else {
             await interaction.reply('Invalid role ID.');
@@ -207,5 +201,15 @@ client.on('interactionCreate', async interaction => {
         Role ID: ${roleId}`);
     }
 });
+
+function writeConfig() {
+    fs.writeFileSync('config.json', JSON.stringify(
+        { 
+            delay: delay, 
+            channelId: channelId, 
+            roleId: roleId 
+        }
+    ), 'utf8');
+}
 
 client.login(TOKEN);
