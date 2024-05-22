@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node bot.js",
-    "linux": "nohup node bot.js > prod.log &",
+    "linux": "git pull && nohup node bot.js > prod.log &",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "woflydev",
