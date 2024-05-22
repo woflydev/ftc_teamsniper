@@ -78,69 +78,53 @@ client.on('interactionCreate', async interaction => {
 
     const { commandName, options, guild } = interaction;
 
-    try {
-        if (commandName === 'setdelay') {
-            const newDelay = options.getInteger('seconds');
-            if (newDelay > 0) {
-                delay = newDelay * 1000;
-                clearInterval(checkForNewTeam);
-                setInterval(checkForNewTeam, delay);
+    if (commandName === 'setdelay') {
+        const newDelay = options.getInteger('seconds');
+        if (newDelay > 0) {
+            delay = newDelay * 1000;
+            clearInterval(checkForNewTeam);
+            setInterval(checkForNewTeam, delay);
 
-                writeConfig();
+            writeConfig();
 
-                await interaction.reply(`Delay set to ${newDelay} seconds.`);
-            } else {
-                await interaction.editReply('Please provide a valid number greater than 0.');
-            }
-        } else if (commandName === 'setchannel') {
-            const newChannelId = options.getString('channelid');
-            const channel = client.channels.cache.get(newChannelId);
-            if (channel) {
-                channelId = newChannelId;
-                writeConfig();
-                await interaction.reply(`Channel set to ${channel.name}`);
-            } else {
-                await interaction.editReply('Invalid channel ID.');
-            }
-        } else if (commandName === 'setrole') {
-            const newRoleId = options.getString('roleid');
-            const role = guild.roles.cache.get(newRoleId);
-            if (role) {
-                roleId = newRoleId;
-                writeConfig();
-                await interaction.reply(`Role set to ${role.name}`);
-            } else {
-                await interaction.editReply('Invalid role ID.');
-            }
-        } else if (commandName === 'ping') {
-            await interaction.reply('Pong!');
-        } else if (commandName === 'help') {
-            await interaction.reply(
-            `This bot sends notifications when a new team is created.\n
-            Commands:
-            /setdelay [seconds] - Set the delay interval in seconds
-            /setchannel [channel ID] - Set the channel ID for notifications
-            /setrole [role ID] - Set the role ID for notifications
-            /ping - Ping the bot
-            /help - This message.
+            await interaction.reply(`Delay set to ${newDelay} seconds.`);
+        } else await interaction.reply('Please provide a valid number greater than 0.');
+    } else if (commandName === 'setchannel') {
+        const newChannelId = options.getString('channelid');
+        const channel = client.channels.cache.get(newChannelId);
+        if (channel) {
+            channelId = newChannelId;
+            writeConfig();
+            await interaction.reply(`Channel set to ${channel.name}`);
+        } else await interaction.reply('Invalid channel ID.');
+    } else if (commandName === 'setrole') {
+        const newRoleId = options.getString('roleid');
+        const role = guild.roles.cache.get(newRoleId);
+        if (role) {
+            roleId = newRoleId;
+            writeConfig();
+            await interaction.reply(`Role set to ${role.name}`);
+        } else await interaction.reply('Invalid role ID.');
+    } else if (commandName === 'ping') {
+        await interaction.reply('Pong!');
+    } else if (commandName === 'help') {
+        await interaction.reply(
+        `This bot sends notifications when a new team is created.\n
+        Commands:
+        /setdelay [seconds] - Set the delay interval in seconds
+        /setchannel [channel ID] - Set the channel ID for notifications
+        /setrole [role ID] - Set the role ID for notifications
+        /ping - Ping the bot
+        /help - This message.
 
-            ========================================
+        ========================================
 
-            Current settings:
-            Delay: ${delay / 1000} seconds
-            Channel ID: ${channelId}
-            Role ID: ${roleId}`);
-        }
-    } catch (error) {
-        console.error('Error handling interaction:', error);
-        if (!interaction.replied) {
-            await interaction.reply('There was an error while executing this command!', {ephemeral: true});
-        } else {
-            await interaction.followUp('There was an error while executing this command!');
-        }
+        Current settings:
+        Delay: ${delay / 1000} seconds
+        Channel ID: ${channelId}
+        Role ID: ${roleId}`);
     }
 });
-
 
 function writeConfig() {
     fs.writeFileSync('config.json', JSON.stringify(
