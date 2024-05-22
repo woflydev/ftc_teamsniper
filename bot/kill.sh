@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Pull the latest changes from the GitHub repository
+echo "Pulling the latest changes from the GitHub repository..."
+git pull origin main
+
 # List all running node processes
 echo "Listing all running node processes:"
 ps -a | grep node

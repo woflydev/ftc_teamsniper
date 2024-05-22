@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node bot.js",
-    "linux": "./kill.sh && nohup node bot.js > prod.log & && exit",
+    "linux": "./kill.sh && nohup node bot.js > prod.log &",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "woflydev",
