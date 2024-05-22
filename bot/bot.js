@@ -25,6 +25,7 @@ const client = new Client({
 let delay = 300000;
 let channelId = null;
 let roleId = null;
+let intervalId = 0;
 
 // Load the configuration from a file if it exists
 try {
@@ -74,7 +75,7 @@ const checkForNewTeam = async () => {
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
-    setInterval(checkForNewTeam, delay);
+    intervalId = setInterval(checkForNewTeam, delay);
 });
 
 // Register slash commands
@@ -151,8 +152,8 @@ client.on('interactionCreate', async interaction => {
         const newDelay = options.getInteger('seconds');
         if (newDelay > 0) {
             delay = newDelay * 1000;
-            clearInterval(checkForNewTeam);
-            setInterval(checkForNewTeam, delay);
+            clearInterval(intervalId);
+            intervalId = setInterval(checkForNewTeam, delay);
             console.log(`New delay set is ${delay/1000}`)
 
             // Save the new delay to a configuration file
