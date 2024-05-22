@@ -1,17 +1,11 @@
 import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
-import fetch from 'node-fetch';
 import fs from 'fs';
-
-// Load the secret.json file to get the bot token and client ID
-let secrets;
-try {
-    secrets = JSON.parse(fs.readFileSync('secret.json', 'utf8'));
-} catch (error) {
-    console.error('Error reading secret.json:', error);
-    process.exit(1);
-}
+import commands from './cmd/commands.js';
+import { secrets, writeConfig } from './util/filehandler.js';
+import { checkForNewTeam } from './util/operation.js';
 
 const { TOKEN, CLIENT_ID } = secrets;
+const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 const client = new Client({
     intents: [
@@ -21,127 +15,22 @@ const client = new Client({
     ],
 });
 
-// Initial delay in milliseconds (5 minutes)
-let delay = 300000;
+let delay = 300000; // 5 min
 let channelId = null;
 let roleId = null;
 let intervalId = 0;
 
-// Load the configuration from a file if it exists
 try {
     const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-    if (config.delay) {
-        delay = config.delay;
-    }
-    if (config.channelId) {
-        channelId = config.channelId;
-    }
-    if (config.roleId) {
-        roleId = config.roleId;
-    }
-} catch (error) {
-    console.error('No configuration file found or invalid JSON. Using default settings.');
-}
-
-let latestTeamNumber = null;
-
-const checkForNewTeam = async () => {
-    try {
-        const response = await fetch('https://sniperapi.woflydev.com/api/latest?year=2023');
-        const data = await response.json();
-        const channel = client.channels.cache.get(channelId);
-
-        if (data.latestTeamNumber && data.latestTeamNumber !== latestTeamNumber) {
-            latestTeamNumber = data.latestTeamNumber;
-            if (channelId) {
-                if (channel) {
-                    const roleMention = roleId ? `<@&${roleId}>` : '';
-                    channel.send(`${roleMention}\nA new team has been made!\nLatest team: ${latestTeamNumber}.`);
-                } else {
-                    console.error('Channel not found!');
-                }
-            } else {
-                console.error('Channel ID not set!');
-            }
-        } else {
-            console.log('\nNo new team found.');
-            console.log("Most recent team number: ", latestTeamNumber);
-            channel.send("No new team found.\nMost recent team number: " + latestTeamNumber + "\n");
-        }
-    } catch (error) {
-        console.error('Error fetching latest team:', error);
-    }
-};
+    if (config.delay) delay = config.delay;
+    if (config.channelId) channelId = config.channelId;
+    if (config.roleId) roleId = config.roleId;
+} catch (error) { console.error('No configuration file found or invalid JSON. Using default settings.'); }
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
-    intervalId = setInterval(checkForNewTeam, delay);
+    intervalId = setInterval(() => checkForNewTeam(client, channelId, roleId), delay);
 });
-
-// Register slash commands
-const commands = [
-    {
-        name: 'setdelay',
-        description: 'Set the delay interval in seconds',
-        options: [
-            {
-                name: 'seconds',
-                type: 4, // INTEGER
-                description: 'Number of seconds before the bot checks the SniperAPI again.',
-                required: true,
-            },
-        ],
-    },
-    {
-        name: 'setchannel',
-        description: 'Set the channel ID for notifications.',
-        options: [
-            {
-                name: 'channelid',
-                type: 3, // STRING
-                description: 'Channel ID',
-                required: true,
-            },
-        ],
-    },
-    {
-        name: 'setrole',
-        description: 'Set the role ID for notifications.',
-        options: [
-            {
-                name: 'roleid',
-                type: 3, // STRING
-                description: 'Role ID',
-                required: true,
-            },
-        ],
-    },
-    {
-        name: 'ping',
-        description: 'Ping the bot.',
-    },
-    {
-        name: 'help',
-        description: 'What is this bot?',
-    }
-];
-
-const rest = new REST({ version: '10' }).setToken(TOKEN);
-
-(async () => {
-    try {
-        console.log('Started refreshing application (/) commands.');
-
-        await rest.put(
-            Routes.applicationCommands(CLIENT_ID),
-            { body: commands },
-        );
-
-        console.log('Successfully reloaded application (/) commands.');
-    } catch (error) {
-        console.error(error);
-    }
-})();
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
@@ -153,12 +42,12 @@ client.on('interactionCreate', async interaction => {
         if (newDelay > 0) {
             delay = newDelay * 1000;
             clearInterval(intervalId);
-            intervalId = setInterval(checkForNewTeam, delay);
+            intervalId = setInterval(() => checkForNewTeam(client, channelId, roleId), delay);
             console.log(`DEBUG: New delay set is ${delay/1000}`);
             writeConfig();
-            await interaction.reply(`# Delay set to ${newDelay} seconds.`);
+            await interaction.reply(`# Delay set!\nThe bot will now check the API every ${newDelay} seconds.`);
         } else {
-            await interaction.reply('Please provide a valid number greater than 0.');
+            await interaction.reply(`# Error!\nMust be valid number greater than 0.`)
         }
     } else if (commandName === 'setchannel') {
         const newChannelId = options.getString('channelid');
@@ -185,31 +74,43 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply('Pong!');
     } else if (commandName === 'help') {
         await interaction.reply(
-        `This bot sends notifications when a new team is created.\n
-        Commands:
-        /setdelay [seconds] - Set the delay interval in seconds
-        /setchannel [channel ID] - Set the channel ID for notifications
-        /setrole [role ID] - Set the role ID for notifications
-        /ping - Ping the bot
-        /help - This message.
-
-        ========================================
-
-        Current settings:
-        Delay: ${delay / 1000} seconds
-        Channel ID: ${channelId}
-        Role ID: ${roleId}`);
+            "# Help!!\n" +
+            "## What this do?\n" +
+            "This bot pings a specified role when a new FTC team is created.\n" +
+            "It uses a custom backend API server at [SniperAPI](https://sniperapi.woflydev.com/hello).\n" +
+            "## Current Settings\n" +
+            "Delay: `" + delay / 1000 + " seconds`\n" +
+            "Notification Channel ID: `" + channelId + "`\n" +
+            "Notification Role ID: `" + roleId + "`\n" +
+            "## Available Bot Commands\n" +
+            "Set the **delay interval** in seconds. ```/setdelay [seconds]```\n" +
+            "Set the **Channel ID** used for notifications. ```/setchannel [channel ID]```\n" +
+            "Set the **Role ID** used for notifications. ```/setrole [role ID]```\n" +
+            "**Ping** the bot. ```/ping```\n" +
+            "**Display** this message. ```/help```\n" +
+            "## How do I Configure Roles?\n" +
+            "1. Create a new role in your server for bot spam.\n" +
+            "2. Right-click the role and select `Copy Role ID`.\n" +
+            "3. Paste the ID into the `roleid` field in the `/setrole` command.\n"
+        )
     }
 });
 
-function writeConfig() {
-    fs.writeFileSync('config.json', JSON.stringify(
-        { 
-            delay: delay, 
-            channelId: channelId, 
-            roleId: roleId 
-        }
-    ), 'utf8');
-}
-
+// login
 client.login(TOKEN);
+
+// register cmd
+(async () => {
+    try {
+        console.log('Started refreshing application (/) commands.');
+
+        await rest.put(
+            Routes.applicationCommands(CLIENT_ID),
+            { body: commands },
+        );
+
+        console.log('Successfully reloaded application (/) commands.');
+    } catch (error) {
+        console.error(error);
+    }
+})();
