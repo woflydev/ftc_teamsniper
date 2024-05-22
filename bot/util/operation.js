@@ -21,6 +21,7 @@ const checkForNewTeam = async (client, channelId, roleId) => {
                 }
             } else {
                 console.error('Channel ID not set!');
+                channel.send("Channel ID not set!");
             }
         } else {
             console.log('\nNo new team found.');

@@ -44,8 +44,8 @@ client.on('interactionCreate', async interaction => {
             clearInterval(intervalId);
             intervalId = setInterval(() => checkForNewTeam(client, channelId, roleId), delay);
             console.log(`DEBUG: New delay set is ${delay/1000}`);
-            writeConfig();
-            await interaction.reply(`# Delay set!\nThe bot will now check the API every ${newDelay} seconds.`);
+            writeConfig({ delay, channelId, roleId });
+            await interaction.reply(`# Success!\nThe bot will now check the API every \`${newDelay} seconds\`.`);
         } else {
             await interaction.reply(`# Error!\nMust be valid number greater than 0.`)
         }
@@ -54,21 +54,21 @@ client.on('interactionCreate', async interaction => {
         const channel = client.channels.cache.get(newChannelId);
         if (channel) {
             channelId = newChannelId;
-            writeConfig();
+            writeConfig({ delay, channelId, roleId });
 
-            await interaction.reply(`Channel set to ${channel.name}`);
+            await interaction.reply(`# Success!\nThe bot will now send all updates to to \`${channel.name}\`.`);
         } else {
-            await interaction.reply('Invalid channel ID.');
+            await interaction.reply("# Error!\nCouldn't find that Channel ID.");
         }
     } else if (commandName === 'setrole') {
         const newRoleId = options.getString('roleid');
         const role = guild.roles.cache.get(newRoleId);
         if (role) {
             roleId = newRoleId;
-            writeConfig();
-            await interaction.reply(`Role set to ${role.name}`);
+            writeConfig({ delay, channelId, roleId });
+            await interaction.reply(`# Success!\nThe bot will now ping \`${role.name}\` when a new team is made.`);
         } else {
-            await interaction.reply('Invalid role ID.');
+            await interaction.reply(`# Error!\nCouldn't find that Role ID.`);
         }
     } else if (commandName === 'ping') {
         await interaction.reply('Pong!');

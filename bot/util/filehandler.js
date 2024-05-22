@@ -8,15 +8,8 @@ try {
     process.exit(1);
 }
 
-function writeConfig() {
-    fs.writeFileSync('config.json', JSON.stringify(
-        { 
-            delay: delay, 
-            channelId: channelId, 
-            roleId: roleId 
-        }
-    ), 'utf8');
+function writeConfig(config) {
+    fs.writeFileSync('config.json', JSON.stringify(config), 'utf8');
 }
 
-export default {secrets, writeConfig};
-
+export { secrets, writeConfig };
