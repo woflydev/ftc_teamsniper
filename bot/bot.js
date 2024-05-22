@@ -64,7 +64,8 @@ const checkForNewTeam = async () => {
             }
         } else {
             console.log('\nNo new team found.');
-            console.log("Most recent team number: ", latestTeamNumber)
+            console.log("Most recent team number: ", latestTeamNumber);
+            channel.send("No new team found.\nMost recent team number: " + latestTeamNumber + "\n");
         }
     } catch (error) {
         console.error('Error fetching latest team:', error);
