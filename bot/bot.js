@@ -55,7 +55,7 @@ const checkForNewTeam = async () => {
             if (channelId) {
                 if (channel) {
                     const roleMention = roleId ? `<@&${roleId}>` : '';
-                    channel.send(`${roleMention}\nA new team has been made! ${latestTeamNumber}`);
+                    channel.send(`${roleMention}\nA new team has been made!\nLatest team: ${latestTeamNumber}.`);
                 } else {
                     console.error('Channel not found!');
                 }
@@ -153,6 +153,7 @@ client.on('interactionCreate', async interaction => {
             delay = newDelay * 1000;
             clearInterval(checkForNewTeam);
             setInterval(checkForNewTeam, delay);
+            console.log(`New delay set is ${delay/1000}`)
 
             // Save the new delay to a configuration file
             fs.writeFileSync('config.json', JSON.stringify({ delay: delay, channelId: channelId, roleId: roleId }), 'utf8');
