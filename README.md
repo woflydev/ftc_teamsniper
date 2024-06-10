@@ -8,3 +8,5 @@ Run `npm i` or `pnpm i` in both the `root` and `server` directories to install a
 Then run `npm run start` or `pnpm start` to start a linked Vite server. A development API server should be opened on port `3000`.
 
 It's worth noting that the production server is hosted separately.
+
+If you would like to use the Discord bot included in this repository, make sure you have your token and application set up. There is documentation online about how to do this. Then simply set your CLIENT_ID and API key in the `bot` directory.
